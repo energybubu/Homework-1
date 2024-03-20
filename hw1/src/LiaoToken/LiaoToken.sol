@@ -11,12 +11,15 @@ interface IERC20 {
 
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
+    event log(string message, uint256 value, uint256 value2, uint256 value3);
+
 }
 
 contract LiaoToken is IERC20 {
     // TODO: you might need to declare several state variable here
     mapping(address account => uint256) private _balances;
     mapping(address account => bool) isClaim;
+    mapping(address account => mapping(address spender => uint256)) private _allowances;
 
     uint256 private _totalSupply;
 
@@ -24,7 +27,6 @@ contract LiaoToken is IERC20 {
     string private _symbol;
 
     event Claim(address indexed user, uint256 indexed amount);
-
     constructor(string memory name_, string memory symbol_) payable {
         _name = name_;
         _symbol = symbol_;
@@ -60,17 +62,37 @@ contract LiaoToken is IERC20 {
 
     function transfer(address to, uint256 amount) external returns (bool) {
         // TODO: please add your implementaiton here
+        if (amount > _balances[msg.sender]){
+            revert();
+        }
+        _balances[msg.sender] -= amount;
+        _balances[to] += amount;
+        emit Transfer(msg.sender, to, amount);
+        return true;
     }
-
     function transferFrom(address from, address to, uint256 value) external returns (bool) {
         // TODO: please add your implementaiton here
+        address spender = msg.sender;
+        if (value > _allowances[from][spender] || value > _balances[from]){
+            revert();
+        }
+        _balances[from] -= value;
+        _balances[to] += value;
+        _allowances[from][spender] -= value;
+        emit Transfer(from, to, value);
+        return true;
     }
 
     function approve(address spender, uint256 amount) external returns (bool) {
         // TODO: please add your implementaiton here
+        address owner = msg.sender;
+        _allowances[owner][spender] = amount;
+        emit Approval(owner, spender, amount);
+        return true;
     }
 
     function allowance(address owner, address spender) public view returns (uint256) {
         // TODO: please add your implementaiton here
+        return _allowances[owner][spender];
     }
 }

@@ -25,6 +25,7 @@ interface IERC721TokenReceiver {
 
 contract NFinTech is IERC721 {
     // Note: I have declared all variables you need to complete this challenge
+    // thanks for your kindness ❤️❤️
     string private _name;
     string private _symbol;
 
@@ -76,29 +77,80 @@ contract NFinTech is IERC721 {
 
     function setApprovalForAll(address operator, bool approved) external {
         // TODO: please add your implementaiton here
+        address owner = msg.sender;
+        if (operator == address(0)) {
+            revert ZeroAddress();
+        }
+        _operatorApproval[owner][operator] = approved;
+        emit ApprovalForAll(owner, operator, approved);
     }
 
     function isApprovedForAll(address owner, address operator) public view returns (bool) {
         // TODO: please add your implementaiton here
+        return _operatorApproval[owner][operator]; 
     }
 
     function approve(address to, uint256 tokenId) external {
         // TODO: please add your implementaiton here
+        address owner = ownerOf(tokenId);
+        if (msg.sender != owner && !isApprovedForAll(owner, msg.sender)){
+            revert ();
+        }
+        _tokenApproval[tokenId] = to  ;
+        emit Approval(owner, to, tokenId);
+
     }
 
     function getApproved(uint256 tokenId) public view returns (address operator) {
         // TODO: please add your implementaiton here
+        if (ownerOf(tokenId)==address(0)){
+            revert ZeroAddress();
+        }
+        return _tokenApproval[tokenId];
     }
-
+    function isApprovedOrOwner(address spender, uint256 tokenId) internal view returns (bool) {
+        address owner = ownerOf(tokenId);
+        return (spender == owner || getApproved(tokenId) == spender || isApprovedForAll(owner, spender));
+    }
     function transferFrom(address from, address to, uint256 tokenId) public {
         // TODO: please add your implementaiton here
+        if (to == address(0)){
+            revert ZeroAddress();
+        }
+        if (from!=ownerOf(tokenId)){
+            revert ("from is not the owner");
+        }
+        if (!isApprovedOrOwner(msg.sender, tokenId)){
+            revert ("not has permission ");
+        }
+        _balances[from] -= 1;
+        _balances[to] += 1;
+        _owner[tokenId] = to;
+
+        delete _tokenApproval[tokenId];
+        emit Transfer(from, to, tokenId);
+
     }
 
     function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata data) public {
         // TODO: please add your implementaiton here
+        transferFrom(from, to, tokenId);
+        require(
+            to.code.length==0 ||
+            IERC721TokenReceiver(to).onERC721Received(msg.sender, from, tokenId, data) == IERC721TokenReceiver.onERC721Received.selector,
+            'transfer to non ERC721Receiver implementer'
+        ); 
+
     }
 
     function safeTransferFrom(address from, address to, uint256 tokenId) public {
         // TODO: please add your implementaiton here
+        transferFrom(from, to, tokenId);
+        require(
+            to.code.length==0 ||
+            IERC721TokenReceiver(to).onERC721Received(msg.sender, from, tokenId, "") == IERC721TokenReceiver.onERC721Received.selector,
+            'transfer to non ERC721Receiver implementer'
+        ); 
+
     }
 }
